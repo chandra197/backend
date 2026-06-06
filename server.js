@@ -2,124 +2,41 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// =====================================
-// NODEMAILER CONFIG
-// =====================================
-
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    logger: true,
-    debug: true
-});
-
-// =====================================
-// ROOT ROUTE
-// =====================================
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.get("/", (req, res) => {
     res.send("Backend Running ❤️");
 });
 
-// =====================================
-// ENVIRONMENT CHECK
-// =====================================
-
-app.get("/env-check", (req, res) => {
-
-    res.json({
-        EMAIL_USER: process.env.EMAIL_USER || "Missing",
-        EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
-        NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL || "Missing"
-    });
-
-});
-
-// =====================================
-// SMTP VERIFY
-// =====================================
-
-app.get("/verify", async (req, res) => {
-
-    try {
-
-        console.log("Starting SMTP verification...");
-
-        await transporter.verify();
-
-        console.log("SMTP verification successful");
-
-        res.send("SMTP Connection Successful ✅");
-
-    } catch (err) {
-
-        console.error("VERIFY ERROR:", err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message,
-            code: err.code,
-            command: err.command
-        });
-
-    }
-
-});
-
-// =====================================
-// TEST EMAIL
-// =====================================
-
 app.get("/test-mail", async (req, res) => {
 
     try {
 
-        console.log("Sending test email...");
-
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        const data = await resend.emails.send({
+            from: "onboarding@resend.dev",
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Backend Test Email",
-            text: "If you received this email, Nodemailer is working correctly."
+            html: "<p>Resend is working ✅</p>"
         });
 
-        console.log("Mail sent:", info.messageId);
-
-        res.send("Test Email Sent Successfully ✅");
+        res.json(data);
 
     } catch (err) {
 
-        console.error("MAIL ERROR:", err);
+        console.error(err);
 
-        res.status(500).json({
-            success: false,
-            message: err.message,
-            code: err.code,
-            command: err.command
-        });
+        res.status(500).json(err);
 
     }
 
 });
-
-// =====================================
-// BIRTHDAY RESPONSE ENDPOINT
-// =====================================
 
 app.post("/api/date-response", async (req, res) => {
 
@@ -127,10 +44,8 @@ app.post("/api/date-response", async (req, res) => {
 
         const { response } = req.body;
 
-        console.log("Received response:", response);
-
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Shreeya Birthday Website Response ❤️",
             html: `
@@ -148,40 +63,25 @@ app.post("/api/date-response", async (req, res) => {
             `
         });
 
-        console.log("Mail sent:", info.messageId);
-
-        res.status(200).json({
+        res.json({
             success: true
         });
 
     } catch (err) {
 
-        console.error("API ERROR:", err);
+        console.error(err);
 
         res.status(500).json({
             success: false,
-            message: err.message,
-            code: err.code,
-            command: err.command
+            message: err.message
         });
 
     }
 
 });
 
-// =====================================
-// START SERVER
-// =====================================
-
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-
-    console.log(`
-===================================
-Server Running ❤️
-Port: ${PORT}
-===================================
-`);
-
+    console.log(`Server running on port ${PORT}`);
 });
