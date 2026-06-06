@@ -59,7 +59,25 @@ app.post("/api/date-response", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-    res.send("Backend Running ❤️");
+      try {
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: process.env.NOTIFICATION_EMAIL,
+            subject: "Render Email Test",
+            text: "If you received this, email is working."
+        });
+
+        res.send("Email Sent Successfully");
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).send(err.message);
+
+    }
+   
 });
 
 app.listen(process.env.PORT, () => {
