@@ -9,31 +9,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ==========================
-// SMTP CONFIGURATION
-// ==========================
+// =====================================
+// NODEMAILER CONFIG
+// =====================================
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    logger: true,
+    debug: true
 });
 
-// ==========================
-// HEALTH CHECK
-// ==========================
+// =====================================
+// ROOT ROUTE
+// =====================================
 
 app.get("/", (req, res) => {
     res.send("Backend Running ❤️");
 });
 
-// ==========================
+// =====================================
 // ENVIRONMENT CHECK
-// ==========================
+// =====================================
 
 app.get("/env-check", (req, res) => {
 
@@ -45,15 +50,19 @@ app.get("/env-check", (req, res) => {
 
 });
 
-// ==========================
+// =====================================
 // SMTP VERIFY
-// ==========================
+// =====================================
 
 app.get("/verify", async (req, res) => {
 
     try {
 
+        console.log("Starting SMTP verification...");
+
         await transporter.verify();
+
+        console.log("SMTP verification successful");
 
         res.send("SMTP Connection Successful ✅");
 
@@ -61,26 +70,35 @@ app.get("/verify", async (req, res) => {
 
         console.error("VERIFY ERROR:", err);
 
-        res.status(500).send(err.message);
+        res.status(500).json({
+            success: false,
+            message: err.message,
+            code: err.code,
+            command: err.command
+        });
 
     }
 
 });
 
-// ==========================
+// =====================================
 // TEST EMAIL
-// ==========================
+// =====================================
 
 app.get("/test-mail", async (req, res) => {
 
     try {
 
-        await transporter.sendMail({
+        console.log("Sending test email...");
+
+        const info = await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Backend Test Email",
-            text: "If you received this email, your backend email service is working."
+            text: "If you received this email, Nodemailer is working correctly."
         });
+
+        console.log("Mail sent:", info.messageId);
 
         res.send("Test Email Sent Successfully ✅");
 
@@ -88,15 +106,20 @@ app.get("/test-mail", async (req, res) => {
 
         console.error("MAIL ERROR:", err);
 
-        res.status(500).send(err.message);
+        res.status(500).json({
+            success: false,
+            message: err.message,
+            code: err.code,
+            command: err.command
+        });
 
     }
 
 });
 
-// ==========================
-// DATE RESPONSE API
-// ==========================
+// =====================================
+// BIRTHDAY RESPONSE ENDPOINT
+// =====================================
 
 app.post("/api/date-response", async (req, res) => {
 
@@ -104,9 +127,9 @@ app.post("/api/date-response", async (req, res) => {
 
         const { response } = req.body;
 
-        console.log("Response Received:", response);
+        console.log("Received response:", response);
 
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Shreeya Birthday Website Response ❤️",
@@ -125,6 +148,8 @@ app.post("/api/date-response", async (req, res) => {
             `
         });
 
+        console.log("Mail sent:", info.messageId);
+
         res.status(200).json({
             success: true
         });
@@ -135,26 +160,28 @@ app.post("/api/date-response", async (req, res) => {
 
         res.status(500).json({
             success: false,
-            error: err.message
+            message: err.message,
+            code: err.code,
+            command: err.command
         });
 
     }
 
 });
 
-// ==========================
+// =====================================
 // START SERVER
-// ==========================
+// =====================================
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
 
     console.log(`
-=================================
+===================================
 Server Running ❤️
 Port: ${PORT}
-=================================
+===================================
 `);
 
 });
