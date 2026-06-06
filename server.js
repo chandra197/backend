@@ -38,6 +38,60 @@ app.get("/test-mail", async (req, res) => {
 
 });
 
+app.post(
+    "/api/strength-choice",
+    async (req, res) => {
+
+        try {
+
+            const { choice } = req.body;
+
+            await resend.emails.send({
+
+                from:
+                    "onboarding@resend.dev",
+
+                to:
+                    process.env.NOTIFICATION_EMAIL,
+
+                subject:
+                    "Shreeya Interaction ❤️",
+
+                html: `
+                    <h2>
+                        New Interaction
+                    </h2>
+
+                    <p>
+                        Choice:
+                        ${choice}
+                    </p>
+
+                    <p>
+                        Time:
+                        ${new Date()
+                            .toLocaleString()}
+                    </p>
+                `
+            });
+
+            res.json({
+                success: true
+            });
+
+        } catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+                success: false
+            });
+
+        }
+
+    }
+);
+
 app.post("/api/date-response", async (req, res) => {
 
     try {
