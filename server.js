@@ -9,29 +9,67 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ======================
-// EMAIL TRANSPORTER
-// ======================
+// ==========================
+// SMTP CONFIGURATION
+// ==========================
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     }
 });
 
-// ======================
+// ==========================
 // HEALTH CHECK
-// ======================
+// ==========================
 
 app.get("/", (req, res) => {
     res.send("Backend Running ❤️");
 });
 
-// ======================
+// ==========================
+// ENVIRONMENT CHECK
+// ==========================
+
+app.get("/env-check", (req, res) => {
+
+    res.json({
+        EMAIL_USER: process.env.EMAIL_USER || "Missing",
+        EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
+        NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL || "Missing"
+    });
+
+});
+
+// ==========================
+// SMTP VERIFY
+// ==========================
+
+app.get("/verify", async (req, res) => {
+
+    try {
+
+        await transporter.verify();
+
+        res.send("SMTP Connection Successful ✅");
+
+    } catch (err) {
+
+        console.error("VERIFY ERROR:", err);
+
+        res.status(500).send(err.message);
+
+    }
+
+});
+
+// ==========================
 // TEST EMAIL
-// ======================
+// ==========================
 
 app.get("/test-mail", async (req, res) => {
 
@@ -41,7 +79,7 @@ app.get("/test-mail", async (req, res) => {
             from: process.env.EMAIL_USER,
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Backend Test Email",
-            text: "If you received this email, Nodemailer is working correctly."
+            text: "If you received this email, your backend email service is working."
         });
 
         res.send("Test Email Sent Successfully ✅");
@@ -50,19 +88,15 @@ app.get("/test-mail", async (req, res) => {
 
         console.error("MAIL ERROR:", err);
 
-        res.status(500).send(`
-            Email Failed ❌
-
-            ${err.message}
-        `);
+        res.status(500).send(err.message);
 
     }
 
 });
 
-// ======================
+// ==========================
 // DATE RESPONSE API
-// ======================
+// ==========================
 
 app.post("/api/date-response", async (req, res) => {
 
@@ -70,14 +104,14 @@ app.post("/api/date-response", async (req, res) => {
 
         const { response } = req.body;
 
-        console.log("Received Response:", response);
+        console.log("Response Received:", response);
 
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: process.env.NOTIFICATION_EMAIL,
             subject: "Shreeya Birthday Website Response ❤️",
             html: `
-                <h2>New Response Received</h2>
+                <h2>New Response Received ❤️</h2>
 
                 <p>
                     <strong>Response:</strong>
@@ -92,36 +126,35 @@ app.post("/api/date-response", async (req, res) => {
         });
 
         res.status(200).json({
-            success: true,
-            message: "Email Sent Successfully"
+            success: true
         });
 
-    } catch (error) {
+    } catch (err) {
 
-        console.error("API ERROR:", error);
+        console.error("API ERROR:", err);
 
         res.status(500).json({
             success: false,
-            message: error.message
+            error: err.message
         });
 
     }
 
 });
 
-// ======================
+// ==========================
 // START SERVER
-// ======================
+// ==========================
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
 
     console.log(`
-==================================
+=================================
 Server Running ❤️
 Port: ${PORT}
-==================================
+=================================
 `);
 
 });
