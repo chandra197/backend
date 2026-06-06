@@ -58,7 +58,7 @@ app.post("/api/date-response", async (req, res) => {
 
 });
 
-app.get("/", (req, res) => {
+app.get("/", async(req, res) => {
       try {
 
         await transporter.sendMail({
