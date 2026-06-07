@@ -92,6 +92,44 @@ app.post(
     }
 );
 
+app.post("/api/site-opened", async (req, res) => {
+
+    try {
+
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: process.env.NOTIFICATION_EMAIL,
+            subject: "Shreeya Opened The Website ❤️",
+            html: `
+                <h2>Website Opened ❤️</h2>
+
+                <p>
+                    Someone opened the birthday website.
+                </p>
+
+                <p>
+                    Time:
+                    ${new Date().toLocaleString()}
+                </p>
+            `
+        });
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false
+        });
+
+    }
+
+});
+
 app.post("/api/date-response", async (req, res) => {
 
     try {
